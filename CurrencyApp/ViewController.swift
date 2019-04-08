@@ -17,7 +17,7 @@ class ViewController: UIViewController {
         self.navigationItem.title = "Currencies"
         tableView.dataSource = self
         tableView.delegate = self
-//        Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(requestCurrencies), userInfo: nil, repeats: true)
+        //        Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(requestCurrencies), userInfo: nil, repeats: true)
         
         requestCurrencies()
     }
@@ -101,8 +101,8 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
         let currency = currencies[indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: "currencyCell", for: indexPath)
         cell.textLabel?.text = currency.name
-//        cell.detailTextLabel?.text = "\(currency.value)"
         let textField = UITextField(frame: CGRect(x: 110, y: 10, width: 185, height: 30))
+        textField.delegate = self
         textField.text = "\(currency.value)"
         
         cell.accessoryView = textField
@@ -120,6 +120,38 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
         let currency = currencies[sourceIndexPath.row]
         currencies.insert(currency, at: destinationIndexPath.row)
+    }
+}
+
+// MARK: - UITextField delegate
+
+extension ViewController: UITextFieldDelegate {
+    fileprivate func dictToCurrency(_ newCurrencyDict: [String : Any]) {
+        do {
+            let data = try JSONSerialization.data(withJSONObject: newCurrencyDict, options: .prettyPrinted)
+            let newCurrency = try JSONDecoder().decode(Currency.self, from: data)
+        } catch (let err) {
+            print(err)
+        }
+    }
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        
+        let value = NSNumber(pointer: textField.text)
+        let floatValue = value.doubleValue
+        
+        self.currencies = currencies.map{
+            let newCurrencyDict = ["name": $0.name,
+                                   "value": ($0.value * floatValue)] as [String : Any]
+            dictToCurrency(newCurrencyDict)
+        }
+        
+        self.view.endEditing(true)
+        return false
+    }
+    
+    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
+        return true
     }
 }
 
