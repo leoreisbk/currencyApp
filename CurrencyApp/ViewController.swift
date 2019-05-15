@@ -11,15 +11,15 @@ import UIKit
 class ViewController: UIViewController {
     @IBOutlet weak var tableView: UITableView!
     var currencies: [Currency] = []
+	var timer = Timer()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         self.navigationItem.title = "Currencies"
         tableView.dataSource = self
         tableView.delegate = self
-        //        Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(requestCurrencies), userInfo: nil, repeats: true)
-        
-        requestCurrencies()
+		
+		timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(requestCurrencies), userInfo: nil, repeats: true)
     }
 }
 
@@ -126,31 +126,35 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
 // MARK: - UITextField delegate
 
 extension ViewController: UITextFieldDelegate {
-    fileprivate func dictToCurrency(_ newCurrencyDict: [String : Any]) {
+    fileprivate func dictToCurrency(_ newCurrencyDict: [String : Any]) -> Currency? {
         do {
             let data = try JSONSerialization.data(withJSONObject: newCurrencyDict, options: .prettyPrinted)
             let newCurrency = try JSONDecoder().decode(Currency.self, from: data)
+			return newCurrency
         } catch (let err) {
             print(err)
         }
+		return nil
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+		let value = textField.text
+		let floatValue = (value! as NSString).floatValue
         
-        let value = NSNumber(pointer: textField.text)
-        let floatValue = value.doubleValue
-        
-        self.currencies = currencies.map{
+        self.currencies = currencies.compactMap {
             let newCurrencyDict = ["name": $0.name,
                                    "value": ($0.value * floatValue)] as [String : Any]
-            dictToCurrency(newCurrencyDict)
+			return dictToCurrency(newCurrencyDict)!
         }
-        
+		
+		self.tableView.reloadData()
         self.view.endEditing(true)
+		timer.fire()
         return false
     }
     
     func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
+		timer.invalidate()
         return true
     }
 }
